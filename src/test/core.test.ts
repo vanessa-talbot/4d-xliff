@@ -6,6 +6,7 @@ import { parseXliff } from '../core/xliffParser';
 import { applyTextEdits, deleteUnitEdit, insertGroupEdit, insertUnitEdit, newLanguageFile, newXliffFile, nextUnitId, renameUnitEdits, resnameProblem, setSourceEdits, setTargetEdits, splitByPlatformEdits } from '../core/xliffEdits';
 import { buildIndex, entryReference, languageFileName, stripLanguageSuffix } from '../core/xliffIndex';
 import { displayText, translationStatus } from '../core/status';
+import { closestResnames } from '../core/suggest';
 import { completionPrefix, refAt, renameUsageEdits, scanUsages } from '../core/usages';
 
 const fixture = path.join(__dirname, '..', '..', 'test-fixtures', 'testXliff');
@@ -332,4 +333,14 @@ test('confirming an unchanged pending translation marks it as translated', () =>
 	const text = '<trans-unit resname="ok"><source>OK</source><target state="needs-translation">OK</target></trans-unit>';
 	const unit = parseXliff(text).units[0];
 	assert.equal(applyTextEdits(text, setTargetEdits(text, unit, 'OK')), '<trans-unit resname="ok"><source>OK</source><target state="translated">OK</target></trans-unit>');
+});
+
+test('suggests the existing resnames closest to a misspelled one', () => {
+	const names = ['form1.windowTitle', 'form1.firstname', 'form1.lastname', 'form1.ok', 'form1.cancel', 'menu.window'];
+	assert.deepEqual(closestResnames('form1.windowTite', names), ['form1.windowTitle']);
+	assert.deepEqual(closestResnames('form1.WindowTitle', names), ['form1.windowTitle']);
+	assert.deepEqual(closestResnames('form1.lastnam', names), ['form1.lastname']);
+	assert.deepEqual(closestResnames('form1.lastname_unknown', names), []);
+	assert.deepEqual(closestResnames('ok', names), []);
+	assert.deepEqual(closestResnames('form1.ok', names), []);
 });

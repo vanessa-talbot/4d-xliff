@@ -128,6 +128,24 @@ export async function run(): Promise<void> {
 		assert.deepEqual(create.command?.arguments, [{ resname: 'form1.lastname_unknown', sourcePath: method.fsPath }]);
 	});
 
+	await check('a misspelled resname in a form suggests the existing one', async () => {
+		const formPath = path.join(root, 'Project/Sources/Forms/Form2/form.4DForm');
+		fs.writeFileSync(formPath, fs.readFileSync(formPath, 'utf8').replace(':xliff:form1.windowTitle', ':xliff:form1.windowTite'));
+		const formUri = vscode.Uri.file(formPath);
+		const diagnostic = await until(() => vscode.languages.getDiagnostics(formUri).find(d => d.code === 'unknown-resname'), 'unknown-resname diagnostic in the form');
+		assert.match(diagnostic.message, /Did you mean "form1\.windowTitle"\?/);
+		const formDoc = await vscode.workspace.openTextDocument(formUri);
+		const actions = (await vscode.commands.executeCommand<vscode.CodeAction[]>('vscode.executeCodeActionProvider', formUri, diagnostic.range))
+			.filter(a => /^(Replace with|Create) "/.test(a.title));
+		assert.deepEqual(actions.map(a => a.title), ['Replace with "form1.windowTitle" (Contact)', 'Create "form1.windowTite" in the XLIFF files…']);
+		assert.ok(actions[0].edit, 'replacement edit');
+		assert.ok(await vscode.workspace.applyEdit(actions[0].edit!), 'edit applied');
+		assert.ok(formDoc.getText().includes('":xliff:form1.windowTitle"'), formDoc.getText().slice(0, 200));
+		await formDoc.save();
+		assert.ok(fs.readFileSync(formPath, 'utf8').includes('":xliff:form1.windowTitle"'));
+		await until(() => !vscode.languages.getDiagnostics(formUri).some(d => d.code === 'unknown-resname') ? true : undefined, 'diagnostic removed');
+	});
+
 	const project = () => model.index.projects[0];
 	const fileSet = (name: string) => project().fileSets.find(s => s.name === name)!;
 

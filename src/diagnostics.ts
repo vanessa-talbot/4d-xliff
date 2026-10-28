@@ -104,7 +104,9 @@ export class XliffDiagnostics implements vscode.Disposable {
 			for (const u of usages) {
 				if (!this.model.isIgnored(u.resname) && !this.model.lookup(u.resname, filePath).length) {
 					const start = new vscode.Position(u.line, u.character);
-					add(filePath, new vscode.Range(start, start.translate(0, u.length)), `Unknown resname "${u.resname}": it is not defined in the XLIFF files of this project`, vscode.DiagnosticSeverity.Warning, 'unknown-resname');
+					const [suggestion] = this.model.suggestionsFor(u.resname, filePath);
+					const hint = suggestion ? ` Did you mean "${suggestion}"?` : '';
+					add(filePath, new vscode.Range(start, start.translate(0, u.length)), `Unknown resname "${u.resname}": it is not defined in the XLIFF files of this project.${hint}`, vscode.DiagnosticSeverity.Warning, 'unknown-resname');
 				}
 			}
 		}

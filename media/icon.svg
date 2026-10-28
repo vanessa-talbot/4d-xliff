@@ -1,0 +1,19 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB224"/>
+      <stop offset="1" stop-color="#FF6A00"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#bg)"/>
+  <!-- XML angle brackets framing the 4D text (the 4D CSS icon uses curly braces) -->
+  <path d="M56 62 26 108l30 46" fill="none" stroke="#FFE4BF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M200 62l30 46-30 46" fill="none" stroke="#FFE4BF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="128" y="138" text-anchor="middle"
+        font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="800" font-size="96"
+        fill="#FFFFFF" letter-spacing="-2">4D</text>
+  <rect x="50" y="176" width="156" height="48" rx="24" fill="#FFFFFF"/>
+  <text x="128" y="210" text-anchor="middle"
+        font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="800" font-size="30"
+        fill="#E05A00" letter-spacing="3">XLIFF</text>
+</svg>

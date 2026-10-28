@@ -1,9 +1,23 @@
 {
   "name": "4d-xliff",
   "displayName": "4D XLIFF Localization",
-  "description": "Browse, translate and reference the XLIFF files of 4D projects (:xliff:resname).",
+  "description": "Catch unknown :xliff: references and missing translations in 4D projects before running, copy references ready to paste into 4D, and edit the XLIFF files in every language.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vanessa-talbot/4d-xliff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vanessa-talbot/4d-xliff/issues"
+  },
+  "homepage": "https://github.com/vanessa-talbot/4d-xliff#readme",
   "version": "0.1.0",
   "publisher": "vanessa-talbot",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#FF8A1F",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -16,7 +30,10 @@
     "xlf",
     "localization",
     "translation",
-    "i18n"
+    "i18n",
+    "l10n",
+    ":xliff:",
+    "Localized string"
   ],
   "activationEvents": [
     "workspaceContains:**/Resources/*.lproj/*.xlf",
@@ -57,7 +74,7 @@
       },
       {
         "command": "4dXliff.filter",
-        "title": "Filter Resnames...",
+        "title": "Filter Resnames…",
         "category": "4D XLIFF",
         "icon": "$(filter)"
       },
@@ -116,12 +133,12 @@
       },
       {
         "command": "4dXliff.copyLocalizedString",
-        "title": "Copy Localized string(...)",
+        "title": "Copy Localized string(…)",
         "category": "4D XLIFF"
       },
       {
         "command": "4dXliff.showUnit",
-        "title": "Show Translations...",
+        "title": "Show Translations…",
         "category": "4D XLIFF",
         "icon": "$(globe)"
       },

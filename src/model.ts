@@ -8,6 +8,7 @@ import { parseXliff, XliffDocument, XliffUnit } from './core/xliffParser';
 import { declarePrefixEdits, deleteUnitEdit, hasGroup, renameUnitEdits, insertGroupEdit, insertUnitEdit, newLanguageFile, newXliffFile, nextUnitId, setSourceEdits, setTargetEdits, splitByPlatformEdits, TextEdit } from './core/xliffEdits';
 import { projectRootOfSource, renameUsageEdits, scanUsages, Usage, usageKind } from './core/usages';
 import { detectEol, detectIndentUnit, offsetToLineCol } from './core/text';
+import { closestResnames } from './core/suggest';
 
 /** Serializable reference to a resname, used in commands and webviews. */
 export interface UnitRef {
@@ -181,6 +182,13 @@ export class XliffModel implements vscode.Disposable {
 			return project.resnames.get(resname) ?? [];
 		}
 		return this.index.projects.flatMap(p => p.resnames.get(resname) ?? []);
+	}
+
+	/** Existing resnames close to an unknown one, the closest first. */
+	suggestionsFor(resname: string, nearPath?: string): string[] {
+		const project = nearPath ? this.projectFor(nearPath) : undefined;
+		const names = project ? project.resnames.keys() : this.index.projects.flatMap(p => [...p.resnames.keys()]);
+		return closestResnames(resname, names);
 	}
 
 	resolve(ref: UnitRef): ResEntry | undefined {

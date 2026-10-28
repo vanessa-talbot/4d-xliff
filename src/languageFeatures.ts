@@ -22,6 +22,10 @@ const XLIFF_SELECTOR: vscode.DocumentSelector = [
 	{ scheme: 'file', pattern: '**/*.xliff' },
 ];
 
+function didYouMean(suggestions: string[]): string {
+	return suggestions.length ? `\n\nDid you mean ${suggestions.map(s => `\`${s}\``).join(', ')}? The quick fix (Cmd+. / Ctrl+.) replaces it.` : '';
+}
+
 function commandLink(title: string, command: string, args: unknown): string {
 	return `[${title}](command:${command}?${encodeURIComponent(JSON.stringify([args]))})`;
 }
@@ -71,7 +75,7 @@ export function registerLanguageFeatures(model: XliffModel): vscode.Disposable[]
 				if (!found.entries.length) {
 					const message = model.isIgnored(found.ref.resname)
 						? `**${escapeMd(found.ref.resname)}**: resname provided by 4D`
-						: `**${escapeMd(found.ref.resname)}**: not found in the XLIFF files of this project`;
+						: `**${escapeMd(found.ref.resname)}**: not found in the XLIFF files of this project${didYouMean(model.suggestionsFor(found.ref.resname, document.uri.fsPath))}`;
 					return new vscode.Hover(new vscode.MarkdownString(message), found.range);
 				}
 				return new vscode.Hover(translationsMarkdown(found.entries), found.range);

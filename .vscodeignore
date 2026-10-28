@@ -8,3 +8,6 @@ tsconfig.json
 .gitignore
 scripts/**
 sandbox/**
+CONTRIBUTING.md
+media/icon.svg
+.github/**

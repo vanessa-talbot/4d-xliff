@@ -1,48 +1,48 @@
 # 4D XLIFF Localization
 
-Browse, translate and reference the XLIFF files of a 4D project from VS Code.
+Stop finding out at runtime that a form shows `:xliff:form1.lastname` instead of "Last name".
 
-4D reads translations from `Resources/<language>.lproj/*.xlf` and displays them where a form, a menu or the code uses `:xliff:resname` or `Localized string("resname")`. This extension shows those files by resname instead of by language, and links each resname to the places that use it.
+In a 4D project, forms, menus and code refer to translations by name: `:xliff:resname` or `Localized string("resname")`. A typo, a string missing in one language, or the same resname defined twice only shows up when the form is opened in that language. This extension checks every reference of the project against its XLIFF files while you edit, and gives you the exact reference to paste into 4D.
 
-## Features
+## Catch broken references before running
 
-**XLIFF view** (activity bar): one entry per file (`Form1.xlf`), whatever the number of languages, then its groups and resnames with their text in the source language.
-- Click the copy button next to a resname to copy `:xliff:resname`, ready to paste into the 4D form or menu editor. The context menu also copies `Localized string("resname")`.
-- Resnames with a missing translation show a warning icon.
-- Filter by resname or by text.
+The Problems view lists, for the whole project:
 
-**Adding strings, groups and files**, always in every language:
-- `+` on a file or a group of the XLIFF view adds a string there. The resname is pre-filled with the prefix of its neighbours (`form1.`), and `:xliff:resname` is copied once created.
-- The context menu of a file or a group adds a group.
-- The `New XLIFF File` button creates the file in each `<language>.lproj` folder, named like the other files of the project (`Dialogs.xlf`, or `DialogsFR.xlf` when the project adds the language to its file names).
-- On an unknown resname in a form, menu or method, the quick fix (Cmd+. / Ctrl+.) creates it. The file and group suggested first are the ones holding resnames with the same prefix, or named like the form or menu.
-- The new string gets the source text in every language, marked `state="needs-translation"` except in the source language, so that 4D never displays an empty label. Its `id` follows the file: the resname, or the next number when the ids are numeric.
+- **Unknown resnames**: a `:xliff:` reference in a form, menu, choice list or help tip, or a `Localized string("…")` in a method, that no XLIFF file defines. This is what 4D displays as `:xliff:…` at runtime. When it looks like a typo of an existing resname (`form1.windowTite`, `form1.WindowTitle`), the message says "Did you mean `form1.windowTitle`?".
+- **Strings missing in a language**: defined in `en.lproj` but not in `fr.lproj`, or present without a translation, or with an empty one.
+- **Strings still to translate** (`state="needs-translation"`).
+- **Duplicate resnames**: the same name in two files, where 4D uses only one of them.
+- **Resnames that `:xliff:` cannot reference**: containing a space, or without a `resname` attribute.
 
-**Adding a language**: "Add Language…" (`…` menu of the XLIFF view, or context menu of a project) creates `<language>.lproj` with a copy of each file of the source language: same groups, ids and mac/win versions, `target-language` set, and every target holding the source text with `state="needs-translation"` (`translate="no"` strings are left as is). 4D thus shows the source text until it is translated. To try a language in 4D without changing the system language, call `SET DATABASE LOCALIZATION("de")`.
+Each problem has a fix at hand: the quick fix (Cmd+. / Ctrl+.) on an unknown resname replaces it with the existing resname it looks like, or creates it in every language, in the file and group holding its neighbours; the translations panel adds a missing string to a language in one click.
 
-**Translating**: the checklist button of the XLIFF view shows only the strings to translate in a language (or in any language), with their count. Clicking one opens its panel with the cursor in that language; "Next to translate", or Cmd/Ctrl+Enter in a translation, saves and moves on to the next one. Enter confirms a translation marked as needing translation even when unchanged ("OK" stays "OK"). Adding a language turns this view on; it is kept across reloads, is left automatically once the last string is translated, and the close button of the view leaves it at any time.
 
-**Renaming a resname**: "Rename Resname…" (context menu, or link in its panel) renames it in every language, mac and win versions included, and in all the forms, menus, lists, tips and methods of the project that reference it, as one operation. The id follows when it is derived from the resname; numeric ids are kept. Close the forms concerned in 4D first.
+![4D XLIFF localisation highlighting, and diagnostics](docs/diagnostic.png)
 
-**Deleting a resname**: "Delete Resname…" in its context menu removes it from every language file, after a confirmation that lists the places still using it. For a mac/win resname, only the chosen version is removed.
+Resnames provided by 4D itself (`CommonMenuFile`, `CommonMenuItemQuit`…) are not reported as unknown, `translate="no"` strings as untranslated, nor the mac and win versions of a resname (`d4:includeIf`) as duplicates.
 
-**Platform versions** (`d4:includeIf="mac"` / `"win"`): each version of a resname is shown and edited separately, marked `mac` or `win`, and is not reported as a duplicate. "Different Text on mac/win…" (context menu of a resname, or link in its panel) turns a resname into a win version and a mac copy, in every language; the `xmlns:d4` declaration is added to the files that lack it.
+## Copy the reference instead of typing it
 
-**Translations panel**: click a resname to see it in every language.
-- Edit the source (written to every language file) and each translation. Enter saves, Shift+Enter adds a line break, Esc cancels.
-- A resname missing in a language can be added there in one click (marked `state="needs-translation"`).
-- "Used in" lists the forms (with the object name), menus, choice lists, help tips and methods that reference it.
+The XLIFF view in the activity bar lists every resname of the project, by file and group, with its text. The copy button next to a resname copies `:xliff:resname`, ready to paste into the Property List of the 4D form or menu editor; the context menu also copies `Localized string("resname")` for the code. A new string created from the view is copied at once.
 
-**In the 4D sources** (`.4dm`, `form.4DForm`, `menus.json`, `lists.json`, `tips.json`):
-- Hover a `:xliff:` reference or `Localized string("…")` to see its translations.
-- Ctrl/Cmd+click goes to the `trans-unit` in each language.
-- Resnames are suggested after `:xliff:` and `Localized string("`.
+![4D XLIFF localisation editor](docs/editor.png)
 
-**In the XLIFF files**: a CodeLens above each `trans-unit` shows how many places use it, and "Find All References" lists them.
+## See each resname where it is used
 
-**Problems view**: unknown resnames in forms, menus, lists, tips and code, translations missing or empty in a language, resnames defined twice, or containing spaces (they cannot be used with `:xliff:`). Resnames provided by 4D (`CommonMenuFile`, `CommonMenuItemQuit`…) are not reported.
+- **In forms, menus, lists, tips and methods**: hover a reference to see its translations, Cmd/Ctrl+click to open its `trans-unit` in each language, and get resnames suggested after `:xliff:` and `Localized string("`.
+- **In the XLIFF files**: a CodeLens above each `trans-unit` counts its usages, and "Find All References" lists them.
+- **In the translations panel**: "Used in" lists the form objects (`Form1 › Button · text`), menus, lists, tips and methods using the resname.
 
-Edits change only the text concerned: indentation, comments and attributes of the XLIFF files are kept as they are.
+## Edit the XLIFF files
+
+Every change applies to all the languages at once, and only touches the text concerned: indentation, comments and attributes are kept as they are.
+
+- **Translations panel** (click a resname): edit the source and each translation. Enter saves, and confirms a translation marked as needing translation even when it stays the same.
+- **Add** a string or a group (`+` and context menu of the XLIFF view), or a file, created in each `<language>.lproj` and named like the other files of the project. New strings get the source text in every language, marked as needing translation, so that 4D never displays an empty label.
+- **Rename** a resname: in every language and in all the forms, menus, lists, tips and methods referencing it, as one operation.
+- **Delete** a resname from every language, after a confirmation listing the places still using it.
+- **Add a language**: a copy of the source language files with every string to translate. The "to translate" view then lists only what remains, and Next / Cmd+Enter moves from one string to the next. To try a language in 4D, call `SET DATABASE LOCALIZATION("de")`.
+- **mac/win versions** (`d4:includeIf`): each version is shown and edited separately; "Different Text on mac/win…" creates them.
 
 ## Settings
 
@@ -53,17 +53,40 @@ Edits change only the text concerned: indentation, comments and attributes of th
 | `4dXliff.excludeFolders` | `node_modules`, `DerivedData`, `Components`, `.git` | Folders ignored |
 | `4dXliff.diagnostics.enabled` | `true` | Report problems |
 
-## Development
+## Known limitations
 
-```sh
-npm install
-npm test                  # parser, index and reference scanner (Node)
-npm run test:integration  # runs in the installed VS Code on a copy of test-fixtures/testXliff
-```
+- The edits are written to the files: close the forms concerned in the 4D form editor before renaming a resname, so that 4D does not save over the change.
+- Resnames containing spaces can only be used with `Localized string`, not in a `:xliff:` reference.
+- Only `Resources/<language>.lproj` folders are read; an XLIFF file directly in `Resources` is ignored.
+- References built at runtime (`Localized string($name)`) cannot be found.
 
-Press F5 to open a VS Code window with the extension loaded:
-- "Run Extension (sandbox)" opens `sandbox/testXliff`, a copy of the test project ignored by git, created when missing: try anything there.
-- "Run Extension (fresh sandbox)" recreates that copy first (or `npm run sandbox`).
-- "Run Extension (test fixture)" opens the reference project used by the tests, to change it on purpose.
+## Commands
 
-`test-fixtures/testXliff` is a minimal 4D project (English and French, one form, one menu bar).
+From the Command Palette, the XLIFF view title bar or its context menus:
+
+- **4D XLIFF: Copy :xliff: Reference** — copies `:xliff:resname` for the 4D form or menu editor (copy button of a resname, or pick one by name).
+- **4D XLIFF: Copy Localized string(…)** — copies `Localized string("resname")` for the code.
+- **4D XLIFF: Show Translations…** — opens the translations panel of a resname.
+- **4D XLIFF: Filter Resnames…** — shows only the resnames whose name or text contains a given text; **Clear Filter** shows them all again.
+- **4D XLIFF: Show Strings to Translate…** — shows only the strings left to translate in a language, or in any language; **Leave the To Translate View** goes back to the whole list.
+- **4D XLIFF: Add String…** — creates a resname in every language (`+` of a file or group, or quick fix on an unknown resname).
+- **4D XLIFF: Add Group…** — creates a group in every language.
+- **4D XLIFF: New XLIFF File…** — creates a file in each `<language>.lproj` folder.
+- **4D XLIFF: Add Language…** — creates `<language>.lproj` from the source language files, every string marked as needing translation.
+- **4D XLIFF: Refresh** — reads the XLIFF files and the 4D sources of the workspace again.
+
+From the context menu of a resname in the XLIFF view:
+
+- **Open in XLIFF File** — opens its `trans-unit` in the source language file.
+- **Find Usages** — lists the forms, menus, lists, tips and methods using it.
+- **Rename Resname…** — renames it in every language and in every reference of the project.
+- **Different Text on mac/win…** — splits it into a win version and a mac version (`d4:includeIf`).
+- **Delete Resname…** — removes it from every language.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the source layout, tests and build instructions.
+
+## License
+
+[MIT](LICENSE)

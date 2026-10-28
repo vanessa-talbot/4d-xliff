@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { TreeGroup, XliffFileSet, XliffProject } from './core/xliffIndex';
 import { hasGroup, resnameProblem } from './core/xliffEdits';
 import { usageKind } from './core/usages';
+import { displayText } from './core/status';
 import { refOf, UnitRef, XliffModel } from './model';
 import { XliffNode } from './tree';
 import { XliffDetailPanel } from './panel';
@@ -235,13 +236,24 @@ export function registerAddCommands(context: vscode.ExtensionContext, model: Xli
 			provideCodeActions(document, _range, context) {
 				return context.diagnostics
 					.filter(d => d.source === '4D XLIFF' && d.code === 'unknown-resname')
-					.map(d => {
+					.flatMap(d => {
 						const resname = document.getText(d.range);
-						const action = new vscode.CodeAction(`Create "${resname}" in the XLIFF files…`, vscode.CodeActionKind.QuickFix);
-						action.diagnostics = [d];
-						action.isPreferred = true;
-						action.command = { command: '4dXliff.addUnit', title: action.title, arguments: [{ resname, sourcePath: document.uri.fsPath } satisfies UnknownResname] };
-						return action;
+						// A misspelling of an existing resname is more likely than a new one.
+						const replacements = model.suggestionsFor(resname, document.uri.fsPath).map((name, index) => {
+							const [entry] = model.lookup(name, document.uri.fsPath);
+							const text = entry ? displayText(entry) : '';
+							const action = new vscode.CodeAction(`Replace with "${name}"${text ? ` (${text.length > 40 ? `${text.slice(0, 40)}…` : text})` : ''}`, vscode.CodeActionKind.QuickFix);
+							action.diagnostics = [d];
+							action.isPreferred = index === 0;
+							action.edit = new vscode.WorkspaceEdit();
+							action.edit.replace(document.uri, d.range, name);
+							return action;
+						});
+						const create = new vscode.CodeAction(`Create "${resname}" in the XLIFF files…`, vscode.CodeActionKind.QuickFix);
+						create.diagnostics = [d];
+						create.isPreferred = !replacements.length;
+						create.command = { command: '4dXliff.addUnit', title: create.title, arguments: [{ resname, sourcePath: document.uri.fsPath } satisfies UnknownResname] };
+						return [...replacements, create];
 					});
 			},
 		}, { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }),
