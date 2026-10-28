@@ -7,10 +7,11 @@ import { ResEntry } from './core/xliffIndex';
 import { parseXliff } from './core/xliffParser';
 import { displayText, STATUS_LABELS, translationStatus } from './core/status';
 import { completionPrefix, refAt } from './core/usages';
-import { refOf, unitLocation, usageLocation, XliffModel } from './model';
+import { entryLabel, refOf, unitLocation, usageLocation, XliffModel } from './model';
 import { escapeMd } from './tree';
 
-const SOURCE_SELECTOR: vscode.DocumentSelector = [
+/** Files of a 4D project that can reference resnames. */
+export const SOURCE_SELECTOR: vscode.DocumentSelector = [
 	{ scheme: 'file', pattern: '**/Project/Sources/**/*.4dm' },
 	{ scheme: 'file', pattern: '**/Project/Sources/**/*.4DForm' },
 	{ scheme: 'file', pattern: '**/Project/Sources/{menus,lists,tips}.json' },
@@ -29,7 +30,7 @@ function translationsMarkdown(entries: ResEntry[]): vscode.MarkdownString {
 	const md = new vscode.MarkdownString();
 	md.isTrusted = { enabledCommands: ['4dXliff.showUnit', '4dXliff.copyXliffRef', '4dXliff.revealInTree'] };
 	for (const entry of entries) {
-		md.appendMarkdown(`**${escapeMd(entry.resname)}** — ${escapeMd([entry.fileSet.name, ...entry.groupPath].join(' › '))}\n\n`);
+		md.appendMarkdown(`**${escapeMd(entryLabel(entry))}** — ${escapeMd([entry.fileSet.name, ...entry.groupPath].join(' › '))}\n\n`);
 		md.appendMarkdown('| | |\n|---|---|\n');
 		for (const lang of entry.fileSet.project.languages) {
 			const status = translationStatus(entry, lang);
@@ -95,11 +96,17 @@ export function registerLanguageFeatures(model: XliffModel): vscode.Disposable[]
 				const project = model.projectFor(document.uri.fsPath);
 				const entries = project ? project.fileSets.flatMap(s => s.entries) : model.allEntries();
 				const range = new vscode.Range(position.translate(0, -prefix.length), position);
-				return entries.map(entry => {
+				// One item per resname, documenting all its platform variants.
+				const byResname = new Map<string, ResEntry[]>();
+				for (const entry of entries) {
+					byResname.set(entry.resname, [...(byResname.get(entry.resname) ?? []), entry]);
+				}
+				return [...byResname.values()].map(variants => {
+					const [entry] = variants;
 					const item = new vscode.CompletionItem({ label: entry.resname, description: displayText(entry) }, vscode.CompletionItemKind.Text);
 					item.range = range;
 					item.detail = entry.fileSet.name;
-					item.documentation = translationsMarkdown([entry]);
+					item.documentation = translationsMarkdown(variants);
 					return item;
 				});
 			},
@@ -114,7 +121,7 @@ export function registerLanguageFeatures(model: XliffModel): vscode.Disposable[]
 				}
 				const doc = parseXliff(document.getText());
 				return doc.units.flatMap(unit => {
-					const entry = found.fileSet.entries.find(e => e.resname === unit.key);
+					const entry = found.fileSet.entries.find(e => e.resname === unit.key && e.platform === unit.platform);
 					if (!entry) {
 						return [];
 					}
@@ -139,7 +146,7 @@ export function registerLanguageFeatures(model: XliffModel): vscode.Disposable[]
 				const found = model.langFileAt(document.uri.fsPath);
 				const offset = document.offsetAt(position);
 				const unit = parseXliff(document.getText()).units.find(u => offset >= u.span.start && offset <= u.span.end);
-				const entry = unit && found?.fileSet.entries.find(e => e.resname === unit.key);
+				const entry = unit && found?.fileSet.entries.find(e => e.resname === unit.key && e.platform === unit.platform);
 				return entry ? model.usagesOf(entry).map(usageLocation) : undefined;
 			},
 		}),

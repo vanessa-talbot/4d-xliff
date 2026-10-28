@@ -45,7 +45,7 @@
     "viewsWelcome": [
       {
         "view": "4dXliff.files",
-        "contents": "No XLIFF file found.\n4D reads translations from Resources/<language>.lproj/*.xlf.\n[Refresh](command:4dXliff.refresh)"
+        "contents": "No XLIFF file found.\n4D reads translations from Resources/<language>.lproj/*.xlf.\n[New XLIFF File](command:4dXliff.addFile)\n[Refresh](command:4dXliff.refresh)"
       }
     ],
     "commands": [
@@ -66,6 +66,47 @@
         "title": "Clear Filter",
         "category": "4D XLIFF",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "4dXliff.addUnit",
+        "title": "Add String…",
+        "category": "4D XLIFF",
+        "icon": "$(add)"
+      },
+      {
+        "command": "4dXliff.addGroup",
+        "title": "Add Group…",
+        "category": "4D XLIFF",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "4dXliff.addFile",
+        "title": "New XLIFF File…",
+        "category": "4D XLIFF",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "4dXliff.addLanguage",
+        "title": "Add Language…",
+        "category": "4D XLIFF",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "4dXliff.showToTranslate",
+        "title": "Show Strings to Translate…",
+        "category": "4D XLIFF",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "4dXliff.stopTranslating",
+        "title": "Leave the To Translate View",
+        "category": "4D XLIFF",
+        "icon": "$(close)"
+      },
+      {
+        "command": "4dXliff.nextToTranslate",
+        "title": "Next String to Translate",
+        "category": "4D XLIFF"
       },
       {
         "command": "4dXliff.copyXliffRef",
@@ -97,6 +138,23 @@
         "icon": "$(references)"
       },
       {
+        "command": "4dXliff.splitByPlatform",
+        "title": "Different Text on mac/win…",
+        "category": "4D XLIFF"
+      },
+      {
+        "command": "4dXliff.renameUnit",
+        "title": "Rename Resname…",
+        "category": "4D XLIFF",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "4dXliff.deleteUnit",
+        "title": "Delete Resname…",
+        "category": "4D XLIFF",
+        "icon": "$(trash)"
+      },
+      {
         "command": "4dXliff.revealInTree",
         "title": "Reveal in XLIFF View",
         "category": "4D XLIFF"
@@ -104,6 +162,21 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "4dXliff.addFile",
+          "when": "view == 4dXliff.files",
+          "group": "navigation@3"
+        },
+        {
+          "command": "4dXliff.stopTranslating",
+          "when": "view == 4dXliff.files && 4dXliff.translateActive",
+          "group": "navigation@0"
+        },
+        {
+          "command": "4dXliff.showToTranslate",
+          "when": "view == 4dXliff.files && !4dXliff.translateActive",
+          "group": "navigation@0"
+        },
         {
           "command": "4dXliff.filter",
           "when": "view == 4dXliff.files",
@@ -117,39 +190,89 @@
         {
           "command": "4dXliff.refresh",
           "when": "view == 4dXliff.files",
-          "group": "navigation@3"
+          "group": "navigation@4"
+        },
+        {
+          "command": "4dXliff.addLanguage",
+          "when": "view == 4dXliff.files",
+          "group": "1_add@1"
         }
       ],
       "view/item/context": [
         {
+          "command": "4dXliff.addUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliff(File|Group)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "4dXliff.addFile",
+          "when": "view == 4dXliff.files && viewItem == xliffProject",
+          "group": "inline@1"
+        },
+        {
+          "command": "4dXliff.addUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliff(File|Group)$/",
+          "group": "0_add@1"
+        },
+        {
+          "command": "4dXliff.addGroup",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliff(File|Group)$/",
+          "group": "0_add@2"
+        },
+        {
+          "command": "4dXliff.addFile",
+          "when": "view == 4dXliff.files && viewItem == xliffProject",
+          "group": "0_add@3"
+        },
+        {
+          "command": "4dXliff.addLanguage",
+          "when": "view == 4dXliff.files && viewItem == xliffProject",
+          "group": "0_add@4"
+        },
+        {
           "command": "4dXliff.copyXliffRef",
-          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
           "group": "inline@1"
         },
         {
           "command": "4dXliff.copyXliffRef",
-          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
           "group": "1_copy@1"
         },
         {
           "command": "4dXliff.copyLocalizedString",
-          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
           "group": "1_copy@2"
         },
         {
           "command": "4dXliff.showUnit",
-          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
           "group": "2_open@1"
         },
         {
           "command": "4dXliff.openInFile",
-          "when": "view == 4dXliff.files && viewItem =~ /^xliff(Unit|File)$/",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliff(Unit|UnitPlatform|File)$/",
           "group": "2_open@2"
         },
         {
           "command": "4dXliff.findUsages",
-          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
           "group": "2_open@3"
+        },
+        {
+          "command": "4dXliff.splitByPlatform",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "3_platform@1"
+        },
+        {
+          "command": "4dXliff.renameUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
+          "group": "9_delete@0"
+        },
+        {
+          "command": "4dXliff.deleteUnit",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliffUnit/",
+          "group": "9_delete@1"
         }
       ],
       "commandPalette": [
@@ -168,6 +291,26 @@
         {
           "command": "4dXliff.clearFilter",
           "when": "4dXliff.filterActive"
+        },
+        {
+          "command": "4dXliff.splitByPlatform",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.deleteUnit",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.renameUnit",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.nextToTranslate",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.stopTranslating",
+          "when": "4dXliff.translateActive"
         }
       ]
     },
@@ -216,6 +359,7 @@
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node --test out/test/*.test.js",
     "test:integration": "sh scripts/integration.sh",
+    "sandbox": "sh scripts/sandbox.sh",
     "package": "npx @vscode/vsce package"
   },
   "devDependencies": {

@@ -3,9 +3,9 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { ResEntry } from './core/xliffIndex';
+import { entryReference, ResEntry } from './core/xliffIndex';
 import { STATUS_LABELS, translationStatus } from './core/status';
-import { refOf, UnitRef, unitLocation, usageLocation, XliffModel } from './model';
+import { entryLabel, refOf, UnitRef, unitLocation, usageLocation, XliffModel } from './model';
 
 type PanelMessage =
 	| { type: 'ready' }
@@ -15,28 +15,55 @@ type PanelMessage =
 	| { type: 'addToLanguage'; lang: string }
 	| { type: 'openUnit'; lang: string }
 	| { type: 'openUsage'; index: number }
-	| { type: 'reveal' };
+	| { type: 'reveal' }
+	| { type: 'showVariant'; index: number }
+	| { type: 'splitByPlatform' }
+	| { type: 'rename' }
+	| { type: 'delete' }
+	| { type: 'next' };
 
 export class XliffDetailPanel implements vscode.Disposable {
 	private static current: XliffDetailPanel | undefined;
 
-	private readonly disposables: vscode.Disposable[] = [];
+	/** Language of the "to translate" view of the tree, if any ('*' for all). */
+	static translateLanguage: () => string | undefined = () => undefined;
 
-	static show(context: vscode.ExtensionContext, model: XliffModel, ref: UnitRef): void {
+	private readonly disposables: vscode.Disposable[] = [];
+	/** Language whose translation gets the focus at the next render. */
+	private focusLang: string | undefined;
+
+	/** Shows a resname; with `focusLang`, puts the cursor in that translation. */
+	static show(context: vscode.ExtensionContext, model: XliffModel, ref: UnitRef, focusLang?: string): void {
 		if (XliffDetailPanel.current) {
 			XliffDetailPanel.current.ref = ref;
-			XliffDetailPanel.current.panel.reveal(undefined, true);
+			XliffDetailPanel.current.focusLang = focusLang;
+			XliffDetailPanel.current.panel.reveal(undefined, !focusLang);
 			XliffDetailPanel.current.render();
 			return;
 		}
-		XliffDetailPanel.current = new XliffDetailPanel(context, model, ref);
+		XliffDetailPanel.current = new XliffDetailPanel(context, model, ref, focusLang);
+	}
+
+	/** Renders the panel again, e.g. when the "to translate" view is turned on or off. */
+	static refresh(): void {
+		XliffDetailPanel.current?.render();
+	}
+
+	/** Follows a renamed resname when the panel shows it. */
+	static retarget(from: UnitRef, to: UnitRef): void {
+		const current = XliffDetailPanel.current;
+		if (current && current.ref.projectRoot === from.projectRoot && current.ref.resname === from.resname) {
+			current.ref = { ...to, platform: current.ref.platform };
+			current.render();
+		}
 	}
 
 	private readonly panel: vscode.WebviewPanel;
 
-	private constructor(context: vscode.ExtensionContext, private readonly model: XliffModel, private ref: UnitRef) {
+	private constructor(context: vscode.ExtensionContext, private readonly model: XliffModel, private ref: UnitRef, focusLang?: string) {
+		this.focusLang = focusLang;
 		const media = vscode.Uri.joinPath(context.extensionUri, 'media');
-		this.panel = vscode.window.createWebviewPanel('4dXliff.detail', ref.resname, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, {
+		this.panel = vscode.window.createWebviewPanel('4dXliff.detail', ref.resname, { viewColumn: vscode.ViewColumn.Beside, preserveFocus: !focusLang }, {
 			enableScripts: true,
 			localResourceRoots: [media],
 		});
@@ -74,20 +101,26 @@ export class XliffDetailPanel implements vscode.Disposable {
 
 	private render(): void {
 		const entry = this.entry();
-		this.panel.title = this.ref.resname;
-		this.panel.webview.postMessage({ type: 'render', data: entry ? this.viewData(entry) : { missing: this.ref.resname } });
+		this.panel.title = entry ? entryLabel(entry) : this.ref.resname;
+		const data = entry ? { ...this.viewData(entry), focusLang: this.focusLang } : { missing: this.ref.resname };
+		this.focusLang = undefined;
+		this.panel.webview.postMessage({ type: 'render', data });
 	}
 
 	private viewData(entry: ResEntry) {
 		const project = entry.fileSet.project;
-		const reference = entry.byLang.get(entry.fileSet.referenceLanguage);
-		const others = this.model.lookup(entry.resname, project.root).filter(e => e !== entry);
+		const reference = entryReference(entry).unit;
+		const sameName = this.model.lookup(entry.resname, project.root);
+		const others = sameName.filter(e => e.fileSet !== entry.fileSet);
+		const variants = sameName.filter(e => e.fileSet === entry.fileSet && e !== entry);
 		// Usual case: the source language translation is the source itself, shown
 		// as a single row (setSource then updates both).
 		const sourceUnit = entry.byLang.get(project.sourceLanguage);
 		const mergedSource = !!sourceUnit && !sourceUnit.hasMarkup && (sourceUnit.target === undefined || sourceUnit.target === sourceUnit.source);
 		return {
 			resname: entry.resname,
+			platform: entry.platform,
+			variants: variants.map(e => e.platform ?? 'all platforms'),
 			id: reference?.id,
 			fileName: entry.fileSet.name,
 			groupPath: entry.groupPath,
@@ -116,7 +149,8 @@ export class XliffDetailPanel implements vscode.Disposable {
 				context: u.context,
 				where: `${path.relative(project.root, u.path)}:${u.line + 1}`,
 			})),
-			duplicates: others.map(e => e.fileSet.name),
+			duplicates: [...new Set(others.map(e => e.fileSet.name))],
+			translateLang: XliffDetailPanel.translateLanguage(),
 		};
 	}
 
@@ -159,6 +193,26 @@ export class XliffDetailPanel implements vscode.Disposable {
 					}
 					break;
 				}
+				case 'showVariant': {
+					const variant = this.model.lookup(entry.resname, entry.fileSet.project.root).filter(e => e.fileSet === entry.fileSet && e !== entry)[message.index];
+					if (variant) {
+						this.ref = refOf(variant);
+						this.render();
+					}
+					break;
+				}
+				case 'rename':
+					await vscode.commands.executeCommand('4dXliff.renameUnit', refOf(entry));
+					break;
+				case 'delete':
+					await vscode.commands.executeCommand('4dXliff.deleteUnit', refOf(entry));
+					break;
+				case 'splitByPlatform':
+					await vscode.commands.executeCommand('4dXliff.splitByPlatform', refOf(entry));
+					break;
+				case 'next':
+					await vscode.commands.executeCommand('4dXliff.nextToTranslate', refOf(entry));
+					break;
 				case 'reveal':
 					await vscode.commands.executeCommand('4dXliff.revealInTree', refOf(entry));
 					break;

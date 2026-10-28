@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:d4="http://www.4d.com/d4-ns" version="1.2">
 	<file original="Form1" source-language="en" target-language="en" datatype="plaintext">
 		<body>
 			<group resname="Form1">
@@ -22,6 +22,14 @@
 				<trans-unit id="form1.cancel" resname="form1.cancel">
 					<source>Cancel</source>
 					<target>Cancel</target>
+				</trans-unit>
+				<trans-unit d4:includeIf="win" id="79" resname="Clipboard_1">
+					<source>Clipboard #1 (Shift or Alt+click to fill)</source>
+					<target>Clipboard #1 (Shift or Alt+click to fill)</target>
+				</trans-unit>
+				<trans-unit d4:includeIf="mac" id="80" resname="Clipboard_1">
+					<source>Clipboard #1 (Cmd+Shift+1 or Alt+Click to fill)</source>
+					<target>Clipboard #1 (Cmd+Shift+1 or Alt+Click to fill)</target>
 				</trans-unit>
 			</group>
 		</body>

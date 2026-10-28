@@ -2,10 +2,10 @@
 // resnames defined twice.
 
 import * as vscode from 'vscode';
-import { LangFile } from './core/xliffIndex';
+import { entryReference, LangFile, unitKey } from './core/xliffIndex';
 import { XliffUnit } from './core/xliffParser';
 import { translationStatus } from './core/status';
-import { positionIn, XliffModel } from './model';
+import { entryLabel, positionIn, XliffModel } from './model';
 
 const SOURCE = '4D XLIFF';
 
@@ -57,10 +57,10 @@ export class XliffDiagnostics implements vscode.Disposable {
 						} else if (/\s/.test(unit.resname)) {
 							add(file.path, unitRange(file, unit), `Resname "${unit.resname}" contains a space: it cannot be used in a :xliff: reference, only with Localized string`, vscode.DiagnosticSeverity.Information, 'resname-space');
 						}
-						if (seen.has(unit.key)) {
+						if (seen.has(unitKey(unit))) {
 							add(file.path, unitRange(file, unit), `Duplicate resname "${unit.key}" in this file`, vscode.DiagnosticSeverity.Warning, 'duplicate');
 						}
-						seen.add(unit.key);
+						seen.add(unitKey(unit));
 					}
 					for (const error of file.doc.errors) {
 						add(file.path, new vscode.Range(0, 0, 0, 0), error, vscode.DiagnosticSeverity.Error, 'parse-error');
@@ -73,23 +73,25 @@ export class XliffDiagnostics implements vscode.Disposable {
 						const file = fileSet.files.get(lang);
 						const unit = entry.byLang.get(lang);
 						if (status === 'missingUnit') {
-							const refUnit = entry.byLang.get(fileSet.referenceLanguage)!;
-							add(reference.path, unitRange(reference, refUnit), `"${entry.resname}" is missing in ${fileSet.files.get(lang)!.label}`, vscode.DiagnosticSeverity.Warning, 'missing-unit');
+							const ref = entryReference(entry);
+							const refFile = fileSet.files.get(ref.lang)!;
+							add(refFile.path, unitRange(refFile, ref.unit), `"${entryLabel(entry)}" is missing in ${fileSet.files.get(lang)!.label}`, vscode.DiagnosticSeverity.Warning, 'missing-unit');
 						} else if (file && unit && (status === 'missingTarget' || status === 'empty')) {
-							add(file.path, unitRange(file, unit), `"${entry.resname}" has no ${lang} translation`, vscode.DiagnosticSeverity.Warning, 'missing-target');
+							add(file.path, unitRange(file, unit), `"${entryLabel(entry)}" has no ${lang} translation`, vscode.DiagnosticSeverity.Warning, 'missing-target');
 						} else if (file && unit && status === 'needsTranslation') {
-							add(file.path, unitRange(file, unit), `"${entry.resname}" needs a ${lang} translation (state="${unit.targetState}")`, vscode.DiagnosticSeverity.Information, 'needs-translation');
+							add(file.path, unitRange(file, unit), `"${entryLabel(entry)}" needs a ${lang} translation (state="${unit.targetState}")`, vscode.DiagnosticSeverity.Information, 'needs-translation');
 						}
 					}
 				}
 			}
 
 			for (const [resname, entries] of project.resnames) {
-				if (entries.length < 2) {
-					continue;
-				}
 				for (const entry of entries) {
-					const others = entries.filter(e => e !== entry).map(e => e.fileSet.name).join(', ');
+					// Platform variants of the same file are not duplicates.
+					const others = [...new Set(entries.filter(e => e.fileSet !== entry.fileSet).map(e => e.fileSet.name))].join(', ');
+					if (!others) {
+						continue;
+					}
 					for (const [lang, unit] of entry.byLang) {
 						const file = entry.fileSet.files.get(lang)!;
 						add(file.path, unitRange(file, unit), `"${resname}" is also defined in ${others}`, vscode.DiagnosticSeverity.Warning, 'duplicate');

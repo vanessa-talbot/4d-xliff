@@ -1,4 +1,4 @@
-import { ResEntry } from './xliffIndex';
+import { entryReference, ResEntry } from './xliffIndex';
 import { PENDING_STATES } from './xliffEdits';
 
 export type TranslationStatus =
@@ -41,7 +41,7 @@ export function isTranslated(status: TranslationStatus): boolean {
 /** Text shown for an entry: the source language translation, or the source. */
 export function displayText(entry: ResEntry): string {
 	const lang = entry.fileSet.project.sourceLanguage;
-	const unit = entry.byLang.get(lang) ?? entry.byLang.get(entry.fileSet.referenceLanguage);
+	const unit = entry.byLang.get(lang) ?? entryReference(entry).unit;
 	return unit?.target || unit?.source || '';
 }
 

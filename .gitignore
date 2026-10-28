@@ -7,3 +7,6 @@ out/
 test-fixtures/**/Data/
 test-fixtures/**/DerivedData/
 test-fixtures/**/userPreferences.*/
+
+# Copy of the test project for manual tests (scripts/sandbox.sh)
+sandbox/

@@ -7,3 +7,4 @@ out/test/**
 tsconfig.json
 .gitignore
 scripts/**
+sandbox/**

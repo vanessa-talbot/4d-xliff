@@ -72,6 +72,13 @@ export function refAt(line: string, character: number): ResnameRef | undefined {
 	return findRefsInLine(line).find(r => character >= r.start && character <= r.end);
 }
 
+/** Edits renaming the references to `oldName` in a 4D source file. */
+export function renameUsageEdits(filePath: string, text: string, oldName: string, newName: string): { start: number; end: number; newText: string }[] {
+	return scanUsages(filePath, text)
+		.filter(u => u.resname === oldName)
+		.map(u => ({ start: u.offset, end: u.offset + u.length, newText: newName }));
+}
+
 /** Text typed so far when completing a resname, if the cursor is in one. */
 export function completionPrefix(lineBeforeCursor: string): string | undefined {
 	const m = /(?::xliff:|Localized string(?::C\d+)?\s*\(\s*")([^"'\s\\<>,;()]*)$/i.exec(lineBeforeCursor);

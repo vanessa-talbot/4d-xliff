@@ -15,6 +15,9 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 	private roots: XliffNode[] = [];
 	private readonly unitNodes = new Map<ResEntry, XliffNode>();
 	private filter = '';
+	/** Language whose untranslated strings only are shown, '*' for any language. */
+	private toTranslate: string | undefined;
+	private unitOrder: ResEntry[] = [];
 	private readonly emitter = new vscode.EventEmitter<void>();
 	readonly onDidChangeTreeData = this.emitter.event;
 
@@ -27,10 +30,33 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 		return this.filter;
 	}
 
+	get translateLanguage(): string | undefined {
+		return this.toTranslate;
+	}
+
 	setFilter(value: string): void {
 		this.filter = value.trim();
-		vscode.commands.executeCommand('setContext', '4dXliff.filterActive', this.filter !== '');
+		this.filtersChanged();
+	}
+
+	setTranslateLanguage(lang: string | undefined): void {
+		this.toTranslate = lang;
+		this.filtersChanged();
+	}
+
+	private filtersChanged(): void {
+		vscode.commands.executeCommand('setContext', '4dXliff.filterActive', this.isFiltered());
+		vscode.commands.executeCommand('setContext', '4dXliff.translateActive', this.toTranslate !== undefined);
 		this.rebuild();
+	}
+
+	private isFiltered(): boolean {
+		return this.filter !== '' || this.toTranslate !== undefined;
+	}
+
+	/** Strings shown in the view, in display order. */
+	shownEntries(): ResEntry[] {
+		return this.unitOrder;
 	}
 
 	nodeFor(entry: ResEntry): XliffNode | undefined {
@@ -46,7 +72,7 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 	}
 
 	getTreeItem(node: XliffNode): vscode.TreeItem {
-		const expanded = this.filter ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
+		const expanded = this.isFiltered() ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed;
 		switch (node.kind) {
 			case 'project': {
 				const item = new vscode.TreeItem(node.project.name, vscode.TreeItemCollapsibleState.Expanded);
@@ -54,6 +80,7 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 				item.iconPath = new vscode.ThemeIcon('project');
 				item.description = node.project.languages.join(' · ') || 'no XLIFF file';
 				item.tooltip = node.project.root;
+				item.contextValue = 'xliffProject';
 				return item;
 			}
 			case 'file': {
@@ -78,13 +105,13 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 			case 'unit': {
 				const { entry } = node;
 				const item = new vscode.TreeItem(entry.resname, vscode.TreeItemCollapsibleState.None);
-				item.id = `unit:${entry.fileSet.id}|${entry.resname}`;
-				item.description = displayText(entry);
+				item.id = `unit:${entry.fileSet.id}|${entry.resname}|${entry.platform ?? ''}`;
+				item.description = entry.platform ? `${entry.platform} · ${displayText(entry)}` : displayText(entry);
 				item.iconPath = isComplete(entry)
 					? new vscode.ThemeIcon('symbol-string')
 					: new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
 				item.tooltip = unitTooltip(entry);
-				item.contextValue = 'xliffUnit';
+				item.contextValue = entry.platform ? 'xliffUnitPlatform' : 'xliffUnit';
 				item.command = { command: '4dXliff.showUnit', title: 'Show Translations', arguments: [refOf(entry)] };
 				return item;
 			}
@@ -93,22 +120,29 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 
 	private rebuild(): void {
 		this.unitNodes.clear();
+		this.unitOrder = [];
 		const needle = this.filter.toLowerCase();
-		const matches = (e: ResEntry) => !needle || e.resname.toLowerCase().includes(needle)
+		const filtered = this.isFiltered();
+		const lang = this.toTranslate;
+		const matchesText = (e: ResEntry) => !needle || e.resname.toLowerCase().includes(needle)
 			|| [...e.byLang.values()].some(u => (u.target ?? '').toLowerCase().includes(needle) || (u.source ?? '').toLowerCase().includes(needle));
+		const toTranslate = (e: ResEntry) => lang === undefined
+			|| (lang === '*' ? !isComplete(e) : e.fileSet.project.languages.includes(lang) && !isTranslated(translationStatus(e, lang)));
+		const matches = (e: ResEntry) => toTranslate(e) && matchesText(e);
 
 		const groupChildren = (group: TreeGroup, fileSet: XliffFileSet, parent: XliffNode): XliffNode[] => {
 			const nodes: XliffNode[] = [];
 			for (const sub of group.groups) {
 				const node: XliffNode = { kind: 'group', group: sub, fileSet, parent, children: [] };
 				node.children = groupChildren(sub, fileSet, node);
-				if (node.children.length || !needle) {
+				if (node.children.length || !filtered) {
 					nodes.push(node);
 				}
 			}
 			for (const entry of group.entries.filter(matches)) {
 				const node: XliffNode = { kind: 'unit', entry, parent, children: [] };
 				this.unitNodes.set(entry, node);
+				this.unitOrder.push(entry);
 				nodes.push(node);
 			}
 			return nodes;
@@ -117,7 +151,7 @@ export class XliffTreeProvider implements vscode.TreeDataProvider<XliffNode> {
 		const fileNodes = (project: XliffProject, parent?: XliffNode): XliffNode[] => project.fileSets.flatMap(fileSet => {
 			const node: XliffNode = { kind: 'file', fileSet, parent, children: [] };
 			node.children = groupChildren(fileSet.root, fileSet, node);
-			return node.children.length || !needle ? [node] : [];
+			return node.children.length || !filtered ? [node] : [];
 		});
 
 		const projects = this.model.index.projects;
@@ -140,7 +174,7 @@ function isComplete(entry: ResEntry): boolean {
 
 function unitTooltip(entry: ResEntry): vscode.MarkdownString {
 	const md = new vscode.MarkdownString();
-	md.appendMarkdown(`**:xliff:${escapeMd(entry.resname)}**\n\n`);
+	md.appendMarkdown(`**:xliff:${escapeMd(entry.resname)}**${entry.platform ? ` — ${escapeMd(entry.platform)} only` : ''}\n\n`);
 	for (const lang of entry.fileSet.project.languages) {
 		const status = translationStatus(entry, lang);
 		const unit = entry.byLang.get(lang);

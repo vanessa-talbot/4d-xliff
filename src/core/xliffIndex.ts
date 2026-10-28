@@ -14,6 +14,8 @@ export interface SourceFile {
 export interface LangFile {
 	lang: string;
 	path: string;
+	/** Path relative to the .lproj folder, e.g. "CommonFR.xlf". */
+	relName: string;
 	/** Path relative to Resources, e.g. "fr.lproj/CommonFR.xlf". */
 	label: string;
 	text: string;
@@ -23,6 +25,8 @@ export interface LangFile {
 
 export interface ResEntry {
 	resname: string;
+	/** "mac" or "win" for a platform variant (d4:includeIf), each one being a separate entry. */
+	platform?: string;
 	fileSet: XliffFileSet;
 	groupPath: string[];
 	byLang: Map<string, XliffUnit>;
@@ -93,6 +97,30 @@ export function stripLanguageSuffix(relName: string, lang: string): string {
 		return stem.slice(0, -compact.length) + ext;
 	}
 	return relName;
+}
+
+/**
+ * Name of the `lang` file of `setName`, following the naming of the existing
+ * files of the project: Dialogs.xlf, or DialogsFR.xlf / Dialogs_fr.xlf when
+ * the project adds the language to its file names.
+ */
+export function languageFileName(project: XliffProject, setName: string, lang: string): string {
+	const setExt = path.posix.extname(setName);
+	const stem = setName.slice(0, setName.length - setExt.length);
+	for (const set of project.fileSets) {
+		for (const file of set.files.values()) {
+			if (file.relName === set.name) {
+				continue;
+			}
+			const suffix = file.relName.slice(set.name.length - path.posix.extname(set.name).length, file.relName.length - path.posix.extname(file.relName).length);
+			if (/^[-_.]/.test(suffix)) {
+				const upper = suffix.slice(1) === suffix.slice(1).toUpperCase();
+				return `${stem}${suffix[0]}${upper ? lang.toUpperCase() : lang.toLowerCase()}${setExt}`;
+			}
+			return `${stem}${lang.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}${setExt}`;
+		}
+	}
+	return setName;
 }
 
 /** Recognizes <root>/Resources/<lang>.lproj/<relName>. */
@@ -184,7 +212,7 @@ export function buildIndex(files: SourceFile[], options: IndexOptions = {}): Xli
 				};
 				sets.set(key, set);
 			}
-			set.files.set(f.lang, { lang: f.lang, path: f.path, label: `${f.lang}.lproj/${f.relName}`, text: f.text, doc: f.doc, lines: lineStarts(f.text) });
+			set.files.set(f.lang, { lang: f.lang, path: f.path, relName: f.relName, label: `${f.lang}.lproj/${f.relName}`, text: f.text, doc: f.doc, lines: lineStarts(f.text) });
 		}
 
 		for (const set of sets.values()) {
@@ -229,10 +257,11 @@ function fillEntries(set: XliffFileSet, languages: string[]): void {
 	const entries = new Map<string, ResEntry>();
 	for (const lang of languages) {
 		for (const unit of set.files.get(lang)!.doc.units) {
-			let entry = entries.get(unit.key);
+			const key = unitKey(unit);
+			let entry = entries.get(key);
 			if (!entry) {
-				entry = { resname: unit.key, fileSet: set, groupPath: unit.groupPath, byLang: new Map() };
-				entries.set(unit.key, entry);
+				entry = { resname: unit.key, platform: unit.platform, fileSet: set, groupPath: unit.groupPath, byLang: new Map() };
+				entries.set(key, entry);
 				set.entries.push(entry);
 				ensureGroup(unit.groupPath).entries.push(entry);
 			}
@@ -241,6 +270,20 @@ function fillEntries(set: XliffFileSet, languages: string[]): void {
 			}
 		}
 	}
+}
+
+/**
+ * Unit to take the source, id and position of an entry from: the source
+ * language one, or the first language having it when it was added there only.
+ */
+export function entryReference(entry: ResEntry): { lang: string; unit: XliffUnit } {
+	const lang = entry.fileSet.project.languages.find(l => entry.byLang.has(l)) ?? [...entry.byLang.keys()][0];
+	return { lang, unit: entry.byLang.get(lang)! };
+}
+
+/** Identifies a trans-unit in a file: its resname, and its platform for 4D variants. */
+export function unitKey(unit: { key: string; platform?: string }): string {
+	return unit.platform ? `${unit.key}\u0000${unit.platform}` : unit.key;
 }
 
 export function projectForPath(index: XliffIndex, filePath: string): XliffProject | undefined {

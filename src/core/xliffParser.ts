@@ -14,6 +14,13 @@ export interface XliffUnit {
 	resname?: string;
 	/** Name used by 4D (resname, or id when resname is missing). */
 	key: string;
+	/**
+	 * Platform of a 4D variant (d4:includeIf="mac" or "win"): the same
+	 * resname can then be defined once per platform.
+	 */
+	platform?: string;
+	/** Name of the attribute holding the platform, e.g. "d4:includeIf". */
+	platformAttr?: string;
 	source?: string;
 	target?: string;
 	targetState?: string;
@@ -24,6 +31,9 @@ export interface XliffUnit {
 	targetElement?: Span;
 	targetInner?: Span;
 	targetStateValue?: Span;
+	/** Values of the resname and id attributes, to rename them. */
+	resnameValue?: Span;
+	idValue?: Span;
 	groupPath: string[];
 	/** false when translate="no" is set on the unit or one of its groups. */
 	translatable: boolean;
@@ -45,6 +55,11 @@ export interface XliffDocument {
 	original?: string;
 	sourceLanguage?: string;
 	targetLanguage?: string;
+	targetLanguageValue?: Span;
+	/** Start tag of the root <xliff> element. */
+	rootElement?: Span;
+	/** Namespace prefixes declared on the root element, e.g. "d4". */
+	rootPrefixes: string[];
 	fileElement?: Span;
 	units: XliffUnit[];
 	groups: XliffGroup[];
@@ -105,7 +120,7 @@ function skipTo(text: string, from: number, marker: string): number {
 }
 
 export function parseXliff(text: string): XliffDocument {
-	const doc: XliffDocument = { units: [], groups: [], errors: [] };
+	const doc: XliffDocument = { units: [], groups: [], rootPrefixes: [], errors: [] };
 	const groupStack: XliffGroup[] = [];
 	let fileCount = 0;
 	let unit: XliffUnit | undefined;
@@ -170,11 +185,18 @@ export function parseXliff(text: string): XliffDocument {
 		}
 
 		switch (tag.local) {
+			case 'xliff':
+				if (!tag.closing && !doc.rootElement) {
+					doc.rootElement = { start: lt, end: gt + 1 };
+					doc.rootPrefixes = [...tag.attrs.keys()].filter(name => name.startsWith('xmlns:')).map(name => name.slice('xmlns:'.length));
+				}
+				break;
 			case 'file':
 				if (!tag.closing && fileCount++ === 0) {
 					doc.original = tag.attrs.get('original')?.value;
 					doc.sourceLanguage = tag.attrs.get('source-language')?.value;
 					doc.targetLanguage = tag.attrs.get('target-language')?.value;
+					doc.targetLanguageValue = tag.attrs.get('target-language')?.valueSpan;
 					doc.fileElement = { start: lt, end: gt + 1 };
 				}
 				break;
@@ -220,10 +242,15 @@ export function parseXliff(text: string): XliffDocument {
 					const id = tag.attrs.get('id')?.value;
 					const group = groupStack[groupStack.length - 1];
 					const translate = tag.attrs.get('translate')?.value;
+					const includeIf = [...tag.attrs].find(([name]) => name === 'includeIf' || name.endsWith(':includeIf'));
 					unit = {
 						id,
 						resname,
+						resnameValue: tag.attrs.get('resname')?.valueSpan,
+						idValue: tag.attrs.get('id')?.valueSpan,
 						key: resname ?? id ?? '',
+						platform: includeIf?.[1].value,
+						platformAttr: includeIf?.[0],
 						span: { start: lt, end: gt + 1 },
 						groupPath: group?.path ?? [],
 						translatable: translate ? translate !== 'no' : group?.translatable ?? true,

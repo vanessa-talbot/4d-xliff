@@ -12,6 +12,20 @@
 			"script": "watch",
 			"isBackground": true,
 			"problemMatcher": "$tsc-watch"
+		},
+		{
+			"label": "Prepare sandbox",
+			"type": "shell",
+			"command": "sh scripts/sandbox.sh --keep",
+			"dependsOn": "npm: compile",
+			"problemMatcher": []
+		},
+		{
+			"label": "Reset sandbox",
+			"type": "shell",
+			"command": "sh scripts/sandbox.sh",
+			"dependsOn": "npm: compile",
+			"problemMatcher": []
 		}
 	]
 }

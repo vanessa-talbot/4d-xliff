@@ -2,7 +2,29 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Run Extension (testXliff)",
+			"name": "Run Extension (sandbox)",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"${workspaceFolder}/sandbox/testXliff"
+			],
+			"outFiles": ["${workspaceFolder}/out/**/*.js"],
+			"preLaunchTask": "Prepare sandbox"
+		},
+		{
+			"name": "Run Extension (fresh sandbox)",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"${workspaceFolder}/sandbox/testXliff"
+			],
+			"outFiles": ["${workspaceFolder}/out/**/*.js"],
+			"preLaunchTask": "Reset sandbox"
+		},
+		{
+			"name": "Run Extension (test fixture)",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
