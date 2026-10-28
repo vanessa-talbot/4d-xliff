@@ -1,0 +1,9 @@
+node_modules/
+out/
+*.vsix
+.DS_Store
+
+# 4D files of the test project that are generated or user specific
+test-fixtures/**/Data/
+test-fixtures/**/DerivedData/
+test-fixtures/**/userPreferences.*/

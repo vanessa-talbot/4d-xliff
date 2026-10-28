@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+	<file original="Menus" source-language="en" target-language="en" datatype="plaintext">
+		<body>
+			<group resname="Menus">
+				<trans-unit id="menu.window" resname="menu.window">
+					<source>Window</source>
+					<target>Window</target>
+				</trans-unit>
+				<trans-unit id="menu.window.contacts" resname="menu.window.contacts">
+					<source>Contacts</source>
+					<target>Contacts</target>
+				</trans-unit>
+				<trans-unit id="menu.window.project" resname="menu.window.project">
+					<source>Project</source>
+					<target>Project</target>
+				</trans-unit>
+			</group>
+		</body>
+	</file>
+</xliff>

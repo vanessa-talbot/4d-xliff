@@ -1,0 +1,226 @@
+{
+  "name": "4d-xliff",
+  "displayName": "4D XLIFF Localization",
+  "description": "Browse, translate and reference the XLIFF files of 4D projects (:xliff:resname).",
+  "version": "0.1.0",
+  "publisher": "vanessa-talbot",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "4D",
+    "xliff",
+    "xlf",
+    "localization",
+    "translation",
+    "i18n"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/Resources/*.lproj/*.xlf",
+    "workspaceContains:**/Project/*.4DProject"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "4dXliff",
+          "title": "4D XLIFF",
+          "icon": "media/xliff.svg"
+        }
+      ]
+    },
+    "views": {
+      "4dXliff": [
+        {
+          "id": "4dXliff.files",
+          "name": "XLIFF files",
+          "icon": "media/xliff.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "4dXliff.files",
+        "contents": "No XLIFF file found.\n4D reads translations from Resources/<language>.lproj/*.xlf.\n[Refresh](command:4dXliff.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "4dXliff.refresh",
+        "title": "Refresh",
+        "category": "4D XLIFF",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "4dXliff.filter",
+        "title": "Filter Resnames...",
+        "category": "4D XLIFF",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "4dXliff.clearFilter",
+        "title": "Clear Filter",
+        "category": "4D XLIFF",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "4dXliff.copyXliffRef",
+        "title": "Copy :xliff: Reference",
+        "category": "4D XLIFF",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "4dXliff.copyLocalizedString",
+        "title": "Copy Localized string(...)",
+        "category": "4D XLIFF"
+      },
+      {
+        "command": "4dXliff.showUnit",
+        "title": "Show Translations...",
+        "category": "4D XLIFF",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "4dXliff.openInFile",
+        "title": "Open in XLIFF File",
+        "category": "4D XLIFF",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "4dXliff.findUsages",
+        "title": "Find Usages",
+        "category": "4D XLIFF",
+        "icon": "$(references)"
+      },
+      {
+        "command": "4dXliff.revealInTree",
+        "title": "Reveal in XLIFF View",
+        "category": "4D XLIFF"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "4dXliff.filter",
+          "when": "view == 4dXliff.files",
+          "group": "navigation@1"
+        },
+        {
+          "command": "4dXliff.clearFilter",
+          "when": "view == 4dXliff.files && 4dXliff.filterActive",
+          "group": "navigation@2"
+        },
+        {
+          "command": "4dXliff.refresh",
+          "when": "view == 4dXliff.files",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "4dXliff.copyXliffRef",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "inline@1"
+        },
+        {
+          "command": "4dXliff.copyXliffRef",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "1_copy@1"
+        },
+        {
+          "command": "4dXliff.copyLocalizedString",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "1_copy@2"
+        },
+        {
+          "command": "4dXliff.showUnit",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "2_open@1"
+        },
+        {
+          "command": "4dXliff.openInFile",
+          "when": "view == 4dXliff.files && viewItem =~ /^xliff(Unit|File)$/",
+          "group": "2_open@2"
+        },
+        {
+          "command": "4dXliff.findUsages",
+          "when": "view == 4dXliff.files && viewItem == xliffUnit",
+          "group": "2_open@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "4dXliff.openInFile",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.findUsages",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.revealInTree",
+          "when": "false"
+        },
+        {
+          "command": "4dXliff.clearFilter",
+          "when": "4dXliff.filterActive"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "4D XLIFF",
+      "properties": {
+        "4dXliff.sourceLanguage": {
+          "type": "string",
+          "default": "",
+          "description": "Source language of the project (e.g. \"en\"). Empty: read from the source-language attribute of the XLIFF files."
+        },
+        "4dXliff.ignoredResnames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "^Common"
+          ],
+          "description": "Regular expressions of resnames provided by 4D itself (e.g. CommonMenuFile). They are never reported as missing."
+        },
+        "4dXliff.excludeFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "DerivedData",
+            "Components",
+            ".git"
+          ],
+          "description": "Folder names ignored when looking for XLIFF files and references."
+        },
+        "4dXliff.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Report unknown :xliff: references, missing translations and duplicate resnames in the Problems view."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "test:integration": "sh scripts/integration.sh",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.6.0"
+  }
+}

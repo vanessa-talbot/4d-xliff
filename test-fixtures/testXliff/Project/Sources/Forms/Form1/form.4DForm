@@ -1,0 +1,95 @@
+{
+	"$4d": {
+		"version": "1",
+		"kind": "form"
+	},
+	"windowSizingX": "variable",
+	"windowSizingY": "variable",
+	"windowMinWidth": 0,
+	"windowMinHeight": 0,
+	"windowMaxWidth": 32767,
+	"windowMaxHeight": 32767,
+	"rightMargin": 20,
+	"bottomMargin": 20,
+	"events": [
+		"onLoad",
+		"onPageChange",
+		"onValidate",
+		"onClick",
+		"onDoubleClick",
+		"onOutsideCall",
+		"onBeginDragOver",
+		"onDragOver",
+		"onDrop",
+		"onAfterKeystroke",
+		"onMenuSelect",
+		"onPluginArea",
+		"onAfterEdit",
+		"onTimer",
+		"onBoundVariableChange"
+	],
+	"windowTitle": ":xliff:form1.windowTitle",
+	"destination": "detailScreen",
+	"pages": [
+		{
+			"objects": {}
+		},
+		{
+			"objects": {
+				"Text": {
+					"type": "text",
+					"text": ":xliff:form1.firstname",
+					"top": 29,
+					"left": 48,
+					"width": 170,
+					"height": 16
+				},
+				"Input": {
+					"type": "input",
+					"left": 48,
+					"top": 54,
+					"width": 194,
+					"height": 17
+				},
+				"Text1": {
+					"type": "text",
+					"text": ":xliff:form1.lastname",
+					"top": 116,
+					"left": 48,
+					"width": 170,
+					"height": 16
+				},
+				"Input1": {
+					"type": "input",
+					"left": 48,
+					"top": 141,
+					"width": 194,
+					"height": 17
+				},
+				"Button": {
+					"type": "button",
+					"text": ":xliff:form1.ok",
+					"top": 226,
+					"left": 143,
+					"width": 112,
+					"height": 27,
+					"events": [
+						"onClick"
+					]
+				},
+				"Button1": {
+					"type": "button",
+					"text": ":xliff:form1.cancel",
+					"top": 226,
+					"left": 283,
+					"width": 112,
+					"height": 27,
+					"events": [
+						"onClick"
+					]
+				}
+			}
+		}
+	],
+	"geometryStamp": 11
+}
